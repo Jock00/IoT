@@ -20,6 +20,10 @@ A smart doorbell project using ESP32-CAM and MQTT protocol for remote access con
 - [MQTT Topics](#mqtt-topics)
 - [Testing](#testing)
 - [Troubleshooting](#troubleshooting)
+- [Technical Details](#technical-details)
+- [Resources](#resources)
+- [Author](#author)
+- [License](#license)
 
 ---
 
@@ -124,13 +128,13 @@ GND           → Common Ground
                       │     ESP32-CAM       │
                       │       + MB          │
                       │                     │
-                      │          GPIO 14 ───┼──── Push Button ──── GND 
-                      │                     │
-                      │          GPIO 15 ───┼──── 330Ω ──── Red GREEN (+) ──── GND
+                      │          GPIO 12 ───┼──── 330Ω ──── Red LED (+) ──── GND
                       │                     │
                       │          GPIO 13 ───┼──── Buzzer (+) ──── GND
                       │                     │
-                      │          GPIO 12 ───┼──── 330Ω ──── Green LED (+) ──── GND
+                      │          GPIO 14 ───┼──── Push Button ──── GND
+                      │                     │
+                      │          GPIO 15 ───┼──── 330Ω ──── Green LED (+) ──── GND
                       │                     │
                       │          GND ───────┼──── GND (Common)
                       │                     │
