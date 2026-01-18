@@ -10,20 +10,21 @@ A smart doorbell project using ESP32-CAM and MQTT protocol for remote access con
 
 ## 📋 Table of Contents
 
-- [Overview](#overview)
-- [Features](#features)
-- [System Architecture](#system-architecture)
-- [Hardware Components](#hardware-components)
-- [Circuit Diagram](#circuit-diagram)
-- [Software Setup](#software-setup)
-- [Configuration](#configuration)
-- [MQTT Topics](#mqtt-topics)
-- [Testing](#testing)
-- [Troubleshooting](#troubleshooting)
-- [Technical Details](#technical-details)
-- [Resources](#resources)
-- [Author](#author)
-- [License](#license)
+- [Overview](#-overview)
+- [Features](#-features)
+- [System Architecture](#%EF%B8%8F-system-architecture)
+- [Hardware Components](#%EF%B8%8F-hardware-components)
+- [Circuit Diagram](#-circuit-diagram)
+- [Software Setup](#-software-setup)
+- [Configuration](#%EF%B8%8F-configuration)
+- [MQTT Topics](#-mqtt-topics)
+- [Testing](#-testing)
+- [Troubleshooting](#-troubleshooting)
+- [Technical Details](#-technical-details)
+- [Resources](#-resources)
+- [Author](#%E2%80%8D-author)
+- [License](#-license)
+
 
 ---
 
