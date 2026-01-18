@@ -1,317 +1,279 @@
-# 🔔 Smart Video Doorbell - IoT End-to-End System (ESP32-CAM & MQTT)
+# 🔔 ESP32-CAM Smart Doorbell System
 
-![Status](https://img.shields.io/badge/Project_Status-Finished_MVP-success)
-![Hardware](https://img.shields.io/badge/Hardware-ESP32--CAM-blue)
-![Protocol](https://img.shields.io/badge/Protocol-MQTT_over_WiFi-orange)
+A smart doorbell project using ESP32-CAM and MQTT protocol for remote access control.
 
-## 📖 Overview
-
-A complete access monitoring system built from scratch. This smart video doorbell captures visitor images and transmits them instantly to a custom dashboard without relying on paid cloud services or complex servers.
-
-The main technical challenge was transmitting images (large payloads) through MQTT, a lightweight protocol optimized for short text messages. The solution uses a **Publisher/Subscriber** architecture with **Base64** encoding performed directly on the development board (**Edge Computing**).
+![ESP32-CAM](https://img.shields.io/badge/ESP32--CAM-AI%20Thinker-blue)
+![MQTT](https://img.shields.io/badge/Protocol-MQTT-orange)
+![PlatformIO](https://img.shields.io/badge/Platform-PlatformIO-orange)
 
 ---
 
-## 📐 System Architecture
+## 📋 Table of Contents
 
-The system is **Event-Driven** (triggered only by button press to conserve energy) and follows this flow:
-
-1. **Source (Publisher):** ESP32-CAM captures the image
-2. **Transport (Broker):** MQTT server handles instant data transfer
-3. **Destination (Subscriber):** Web/Mobile app displays the interface
-
-### Data Flow##
-[Button] → [ESP32: Capture & Base64 Encode] → [WiFi] → [MQTT Broker] → [Client: Decode & Notify]
-
----
-
-## 🛠 Chapter 1: Hardware & Wiring
-
-The physical device is a minimalist embedded system. GPIO pins 13 and 14 were chosen because most ESP32-CAM pins are internally reserved for the camera and SD card.
-
-### Bill of Materials (BOM)
-- **Processing Unit:** [ESP32-CAM AI-Thinker](https://docs.ai-thinker.com/en/esp32-cam)
-- **Input:** Push Button (using internal **Input Pullup** resistor)
-- **Output:** 5V Active Buzzer
-- **Programming:** FTDI Adapter (USB-to-TTL)
-
-### 🔌 Electrical Schematic
-
-| Component | ESP32 Pin | Connection Type | Notes |
-|:----------|:----------|:----------------|:------|
-| **Button** | `GPIO 14` | Digital Input | `INPUT_PULLUP` mode (Active LOW) |
-| **Buzzer** | `GPIO 13` | Digital Output | Active HIGH |
-| **5V / GND** | 5V / GND | Power Supply | Stable source required to avoid **Brownout** |
+- [Overview](#overview)
+- [Features](#features)
+- [System Architecture](#system-architecture)
+- [Hardware Components](#hardware-components)
+- [Circuit Diagram](#circuit-diagram)
+- [Software Setup](#software-setup)
+- [Configuration](#configuration)
+- [MQTT Topics](#mqtt-topics)
+- [Testing](#testing)
+- [Troubleshooting](#troubleshooting)
 
 ---
 
-## 💻 Chapter 2: Firmware & Optimizations
+## 🎯 Overview
 
-The code is written in C++ (PlatformIO). The biggest technical challenge was the MQTT packet size limitation.
+Smart doorbell system that captures photos of visitors and sends them via MQTT protocol. Access control is managed remotely through a mobile application.
 
-### 1. MQTT Buffer Hack
+**Functionality:**
+- Photo capture on button press
+- Image transmission to MQTT broker
+- Remote access control (YES/NO commands)
+- Visual feedback (LED indicators)
+- Audio feedback (buzzer)
 
-The library's default buffer is 256 bytes. To send an image, we forced allocation of 60KB:
+---
+
+## ✨ Features
+
+- 📸 VGA resolution (640x480) image capture
+- 🌐 WiFi connectivity
+- 📱 Mobile app control via MQTT
+- 💡 LED status indicators
+- 🔊 Audio feedback system
+- 🔘 Button debouncing
+
+---
+
+## 🏗️ System Architecture
+```
+     ┌───────────┐                            ┌────────────┐
+     │  ESP32    │                            │   Mobile   │
+     │   CAM     │                            │    App     │
+     └─────┬─────┘                            └──────┬─────┘
+           │                                         │
+           │ PUBLISH                                 │ SUBSCRIBE
+           │ (Photo)                                 │ (Photo)
+           │                                         │
+           ▼                                         ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    MQTT BROKER (Central Hub)                    │
+│                     broker.emqx.io:1883                         │
+└─────────────────────────────────────────────────────────────────┘
+           ▲                                         │
+           │                                         │
+           │ SUBSCRIBE                               │ PUBLISH
+           │ (YES/NO)                                │ (YES/NO)
+           │                                         │
+     ┌─────┴─────┐                            ┌──────┴─────┐
+     │  ESP32    │                            │   Mobile   │
+     │   CAM     │                            │    App     │
+     └───────────┘                            └────────────┘
+```
+
+**Communication Flow:**
+1. Button press triggers photo capture
+2. ESP32-CAM publishes photo to MQTT broker
+3. MQTT broker forwards photo to mobile app
+4. User sends YES/NO command via mobile app
+5. MQTT broker forwards command to ESP32-CAM
+6. ESP32-CAM executes corresponding action
+
+---
+
+## 🛠️ Hardware Components
+
+| Component | Specification | Quantity |
+|-----------|--------------|----------|
+| ESP32-CAM | AI Thinker with OV2640 | 1 |
+| ESP32-CAM-MB | Programmer board | 1 |
+| Push Button | Momentary switch | 1 |
+| Active Buzzer | 5V | 1 |
+| Red LED | 5mm | 1 |
+| Green LED | 5mm | 1 |
+| Resistors | 330Ω | 2 |
+| Breadboard | Standard | 1 |
+| Jumper Wires | Male-to-male | ~15 |
+| Micro USB Cable | Data + Power | 1 |
+
+---
+
+## 🔌 Circuit Diagram
+
+### Pin Connections
+```
+ESP32-CAM Pin → Component
+─────────────────────────
+GPIO 12       → 330Ω → Red LED (+) → GND
+GPIO 13       → Buzzer (+) → GND
+GPIO 14       → Push Button → GND
+GPIO 15       → 330Ω → Green LED (+) → GND
+GND           → Common Ground
+```
+
+### Wiring Diagram
+```
+                              USB Cable
+                        (Power + Programming)
+                                 ▼
+                                 │ Micro USB
+                      ┌──────────┴──────────┐
+                      │                     │
+                      │     ESP32-CAM       │
+                      │       + MB          │
+                      │                     │
+                      │          GPIO 14 ───┼──── Push Button ──── GND 
+                      │                     │
+                      │          GPIO 15 ───┼──── 330Ω ──── Red GREEN (+) ──── GND
+                      │                     │
+                      │          GPIO 13 ───┼──── Buzzer (+) ──── GND
+                      │                     │
+                      │          GPIO 12 ───┼──── 330Ω ──── Green LED (+) ──── GND
+                      │                     │
+                      │          GND ───────┼──── GND (Common)
+                      │                     │
+                      └─────────────────────┘
+```
+
+---
+
+## 📦 Software Setup
+
+### PlatformIO Configuration
+
+**platformio.ini:**
+```ini
+[env:esp32cam]
+platform = espressif32
+board = esp32cam
+framework = arduino
+monitor_speed = 115200
+lib_deps =
+    esp32-camera
+    knolleary/PubSubClient
+    densaugeo/base64
+```
+
+### Required Libraries
+- `esp32-camera` - Camera driver
+- `PubSubClient` - MQTT client
+- `base64` - Image encoding
+
+---
+
+## ⚙️ Configuration
+
+### WiFi Settings
+
+Edit in `main.cpp`:
 ```cpp
-void setup() {
-  client.setServer(mqtt_server, mqtt_port);
-  // ⚠️ Critical fix: Increase buffer size to handle Base64 images
-  client.setBufferSize(60000); 
-}
+const char *ssid = "WIFI_SSID";
+const char *password = "WIFI_PASSWORD";
 ```
 
-### 2. Image Processing (Edge Computing)
-
-Convert binary image (.jpg) to text (Base64) directly on the processor:
+### MQTT Topics
 ```cpp
-// Capture
-camera_fb_t * fb = esp_camera_fb_get();
-
-// Encode to Base64
-String imageBase64 = base64::encode(fb->buf, fb->len);
-
-// Publish to dedicated topic
-client.publish("sonerie/poza", imageBase64.c_str());
+const char* topic_image    = "unique_id/doorbell/photo";
+const char* topic_command  = "unique_id/doorbell/command";
 ```
 
-### 3. Compression Configuration
+**Note:** Change `unique_id` to avoid topic conflicts on public broker.
 
-Set `jpeg_quality = 20` (lower numbers mean better quality but larger files), finding the perfect balance between clarity and transmission speed.
+### Upload Process
+
+1. Connect ESP32-CAM via USB
+2. Click Upload in PlatformIO
+3. Monitor serial output (115200 baud)
 
 ---
 
-## 📱 Chapter 3: Frontend & UI/UX
+## 📡 MQTT Topics
 
-The user interface is a React Dashboard that handles display and notification challenges.
+| Topic | Publisher | Subscriber | Content |
+|-------|-----------|------------|---------|
+| `unique_id/doorbell/photo` | ESP32-CAM | Mobile App | Base64 encoded JPEG |
+| `unique_id/doorbell/command` | Mobile App | ESP32-CAM | "YES" or "NO" |
 
-### 1. Serverless Rendering
-
-Images aren't saved to disk. They're displayed directly from the received string using Data URI Scheme:
-```javascript
-// React / HTML example
-<img 
-  src={`data:image/jpeg;base64,${base64String}`} 
-  alt="Live Capture" 
-/>
-```
-
-### 2. Responsive Design (CSS Fix)
-
-The "Default" card container had display issues on wide screens (too narrow). Fixed using Flexbox to force available space usage:
-```css
-/* Card container fix */
-.card-container {
-  display: flex;
-  flex-direction: column;
-  width: 100%;       /* Force available width usage */
-  flex-grow: 1;      /* Allow expansion on main axis */
-}
-```
-
-### 3. "Red Dot" Notification System 🔴
-
-Visual State Management logic:
-
-- Frontend listens to `sonerie/alerta` topic
-- On message receipt, `hasUnread` state becomes `true`
-- Interface renders red circle over menu
-- On view, state resets
+**MQTT Broker:** `broker.emqx.io:1883` (public, no authentication)
 
 ---
 
-## ⚙️ Installation Guide
+## 📱 Testing
 
-### Hardware Setup
+### Mobile App Setup
 
-1. Make connections according to the table above
-2. For programming, connect GPIO 0 to GND
-3. Upload code via FTDI adapter
-4. **Important:** Disconnect GPIO 0 and press Reset
+**Recommended Apps:**
+- Android: "MQTT Dashboard", "IoT MQTT Panel"
+- iOS: "MQTTool", "IoT MQTT Panel"
 
-### Software Setup
+**Configuration:**
+- Broker: `broker.emqx.io`
+- Port: `1883`
+- Subscribe: `unique_id/doorbell/photo`
+- Publish: `unique_id/doorbell/command` with payload "YES" or "NO"
 
-1. Clone repository and open in VS Code / PlatformIO
-2. Configure WiFi and MQTT Broker in `src/main.cpp`:
-```cpp
-const char *ssid = "Your_WiFi_Name";
-const char *password = "Your_WiFi_Password";
-const char* mqtt_server = "broker.emqx.io";
-```
+### Command Line Testing
+```bash
+# Subscribe to photos
+mosquitto_sub -h broker.emqx.io -t "unique_id/doorbell/photo"
 
-3. Upload code to ESP32-CAM
-4. Start web application (`npm start`)
-
----
-
-## 📝 Complete Firmware Code
-```cpp
-#include <Arduino.h>
-#include "esp_camera.h"
-#include <WiFi.h>
-#include "board_config.h"
-#include <PubSubClient.h>
-#include <base64.h>
-
-// ================= CONFIGURATION =================
-const char *ssid = "Alex wifi";
-const char *password = "alex1234";
-
-// MQTT Broker
-const char* mqtt_server = "broker.emqx.io";
-const int mqtt_port = 1883;
-
-// Topics
-const char* topic_poza = "sonerie/poza";
-const char* topic_text = "sonerie/alerta";
-
-#define BUTTON_PIN 14
-#define BUZZER_PIN 13 
-// ===============================================
-
-WiFiClient espClient;
-PubSubClient client(espClient);
-
-void setup() {
-  Serial.begin(115200);
-  pinMode(BUTTON_PIN, INPUT_PULLUP);
-  pinMode(BUZZER_PIN, OUTPUT);
-  digitalWrite(BUZZER_PIN, LOW);
-
-  // --- Camera Configuration ---
-  camera_config_t config;
-  config.ledc_channel = LEDC_CHANNEL_0;
-  config.ledc_timer = LEDC_TIMER_0;
-  config.pin_d0 = Y2_GPIO_NUM;
-  config.pin_d1 = Y3_GPIO_NUM;
-  config.pin_d2 = Y4_GPIO_NUM;
-  config.pin_d3 = Y5_GPIO_NUM;
-  config.pin_d4 = Y6_GPIO_NUM;
-  config.pin_d5 = Y7_GPIO_NUM;
-  config.pin_d6 = Y8_GPIO_NUM;
-  config.pin_d7 = Y9_GPIO_NUM;
-  config.pin_xclk = XCLK_GPIO_NUM;
-  config.pin_pclk = PCLK_GPIO_NUM;
-  config.pin_vsync = VSYNC_GPIO_NUM;
-  config.pin_href = HREF_GPIO_NUM;
-  config.pin_sccb_sda = SIOD_GPIO_NUM;
-  config.pin_sccb_scl = SIOC_GPIO_NUM;
-  config.pin_pwdn = PWDN_GPIO_NUM;
-  config.pin_reset = RESET_GPIO_NUM;
-  config.xclk_freq_hz = 20000000;
-  config.pixel_format = PIXFORMAT_JPEG;
-
-  if(psramFound()){
-    config.frame_size = FRAMESIZE_VGA; 
-    config.jpeg_quality = 20; // Quality 20 (lower = better) to keep payload small
-    config.fb_count = 2;
-  } else {
-    config.frame_size = FRAMESIZE_QVGA;
-    config.jpeg_quality = 12;
-    config.fb_count = 1;
-  }
-
-  esp_camera_init(&config);
-
-  // --- WiFi ---
-  WiFi.begin(ssid, password);
-  while (WiFi.status() != WL_CONNECTED) { 
-    delay(500); 
-    Serial.print("."); 
-  }
-  Serial.println("\n✅ WiFi Connected!");
-
-  // --- MQTT Setup ---
-  client.setServer(mqtt_server, mqtt_port);
-  // ⚠️ MAGIC TRICK: Huge buffer for Base64 (60KB)
-  client.setBufferSize(60000); 
-}
-
-void reconnect() {
-  while (!client.connected()) {
-    Serial.print("🔌 Connecting to MQTT...");
-    String clientId = "ESP32Cam-" + String(random(0xffff), HEX);
-    if (client.connect(clientId.c_str())) {
-      Serial.println("Success!");
-    } else {
-      delay(2000);
-    }
-  }
-}
-
-void sendPhotoMQTT() {
-  Serial.println("📸 Capturing...");
-  camera_fb_t * fb = esp_camera_fb_get();
-  if(!fb) { 
-    Serial.println("❌ Camera Error"); 
-    return; 
-  }
-
-  // Check if photo fits in buffer
-  // (Base64 increases size by ~35%, so limit is lower)
-  if (fb->len < 45000) {
-    Serial.print("Converting to Base64... ");
-    // Convert photo to text
-    String imageBase64 = base64::encode(fb->buf, fb->len);
-    Serial.print("Sending (Length: ");
-    Serial.print(imageBase64.length());
-    Serial.println(")...");
-
-    if (client.publish(topic_poza, imageBase64.c_str())) {
-      Serial.println("✅ Photo sent!");
-      digitalWrite(BUZZER_PIN, HIGH); 
-      delay(100); 
-      digitalWrite(BUZZER_PIN, LOW);
-    } else {
-      Serial.println("❌ Too large for MQTT!");
-    }
-  } else {
-    Serial.println("⚠️ Raw photo too large!");
-  }
-
-  esp_camera_fb_return(fb);
-}
-
-void loop() {
-  if (!client.connected()) reconnect();
-  client.loop();
-
-  if (digitalRead(BUTTON_PIN) == LOW) {
-    delay(50); // Debounce
-    if (digitalRead(BUTTON_PIN) == LOW) {
-      Serial.println("🔔 Doorbell!");
-      client.publish(topic_text, "Visitor at the door!");
-      sendPhotoMQTT();
-      while(digitalRead(BUTTON_PIN) == LOW) delay(10);
-    }
-  }
-}
+# Send commands
+mosquitto_pub -h broker.emqx.io -t "unique_id/doorbell/command" -m "YES"
+mosquitto_pub -h broker.emqx.io -t "unique_id/doorbell/command" -m "NO"
 ```
 
 ---
 
 ## 🐛 Troubleshooting
 
-| Issue | Cause | Solution |
-|:------|:------|:---------|
-| **Brownout Error** | Voltage drops below 3.3V when WiFi starts | Use short, quality USB cable with stable power source |
-| **Payload Too Large** | Image too detailed for buffer | Increase `jpeg_quality` to 25-30 |
-| **Black Image** | Camera ribbon cable issue | Check FPC cable and black locking clip |
-| **MQTT Connection Failed** | Broker unreachable or wrong credentials | Verify broker address and port 1883 |
+| Issue | Solution |
+|-------|----------|
+| Upload fails | Check COM port, try RESET button, verify USB cable |
+| Camera error | Check ribbon cable connection |
+| WiFi connection | Verify SSID/password, use 2.4GHz network |
+| MQTT issues | Check internet, verify topic names (case-sensitive) |
+| Image too large | Increase `CAMERA_QUALITY_PSRAM` value (25→30) |
+| LEDs not working | Check 330Ω resistors, verify LED polarity |
 
 ---
 
-## 📚 Resources & References
+## 📊 Technical Details
 
-- [PubSubClient Library](https://github.com/knolleary/pubsubclient) - MQTT library used
-- [MQTT Explorer](http://mqtt-explorer.com/) - Debugging tool for topic visualization
-- [ESP32-CAM Documentation](https://docs.ai-thinker.com/en/esp32-cam) - Official hardware reference
+### Key Parameters
+
+- **fb_count = 1**: Single buffer for fresh captures
+- **JPEG Quality = 25**: Balance between size (~40-60KB) and clarity
+- **MQTT Buffer = 60KB**: Accommodates Base64 encoded images
+- **Dummy Capture**: Clears sensor before real capture
+
+### LED Configuration
+- Red LED: Locked/Denied state (active-low logic)
+- Green LED: Unlocked/Granted state (active-low logic)
+- 330Ω current-limiting resistors
 
 ---
 
-## 🎯 Key Takeaways
+## 📚 Resources
 
-- **Edge Computing:** Processing images locally reduces latency and cloud dependency
-- **Protocol Optimization:** MQTT buffer manipulation enables large payload transmission
-- **Event-Driven Design:** Power-efficient approach for IoT devices
-- **Serverless Architecture:** Data URI scheme eliminates need for file storage
+- [PlatformIO Documentation](https://docs.platformio.org/)
+- [ESP32-CAM Pinout](https://randomnerdtutorials.com/esp32-cam-ai-thinker-pinout/)
+- [MQTT Protocol](https://mqtt.org/)
+- [PubSubClient Library](https://github.com/knolleary/pubsubclient)
 
+---
+
+## 👨‍💻 Author
+
+**Alexandru Bucurie**  
+University Project  
+IoT @UPB
+
+---
+
+## 📄 License
+
+MIT License
+
+---
